@@ -4,13 +4,23 @@
 #include <string.h>
 #include <math.h>
 #include <stdbool.h>
+#include <dirent.h>
 #include "Word.h"
 #include "LinkedList.h"
 
 #define DEBUG 0
 #define REMOVE_STOP_WORDS 1
 
-const char *stop_words[] = {"a", "an", "the", "of", "or", "if", "on", "for"};
+const char *stop_words[] = {
+    "i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves",
+    "he", "him", "his", "himself", "she", "her", "hers", "herself", "it", "its", "itself", "they", "them", "their", "theirs", "themselves",
+    "what", "which", "who", "whom", "this", "that", "these", "those", "am", "is", "are", "was", "were", "be", "been", "being",
+    "have", "has", "had", "having", "do", "does", "did", "doing", "a", "an", "the", "and", "but", "if", "or", "because", "as", "until", "while",
+    "of", "at", "by", "for", "with", "about", "against", "between", "into", "through", "during", "before", "after", "above", "below", "to",
+    "from", "up", "down", "in", "out", "on", "off", "over", "under", "again", "further", "then", "once", "here", "there", "when", "where", "why", "how",
+    "all", "any", "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very",
+    "s", "t", "can", "will", "just", "don", "should", "now"
+};
 #define total_stop_words (sizeof(stop_words) / sizeof(const char *))
 
 bool is_stop_word(char *word_text)
@@ -95,7 +105,6 @@ int main(int argc, char **argv)
 
     char *test_file = argv[1];
     char *corpus = argv[2];
-    char *file2 = argv[2];
 
     FILE *test_file_ptr = fopen(test_file, "r");
     if (test_file_ptr == NULL)
@@ -104,9 +113,7 @@ int main(int argc, char **argv)
         return 0;
     }
 
-    LinkedList *all_words_list = ll_new_list(sizeof(Word));
-    LinkedList *word_list_1 = ll_new_list(sizeof(Word));
-    LinkedList *word_list_2 = ll_new_list(sizeof(Word));
+    LinkedList *test_file_words = ll_new_list(sizeof(Word));
 
     char word_text[MAX_WORD_SIZE];
     while (fscanf(test_file_ptr, " %1023s", word_text) == 1)
@@ -128,167 +135,200 @@ int main(int argc, char **argv)
         }
 
         word_text[j] = '\0';
-        Word *find = find_word(word_list_1, word_text);
+        Word *find = find_word(test_file_words, word_text);
         if (find == NULL)
         {
             Word *word = new_word(word_text);
-            ll_append(word_list_1, (void *)word);
+            ll_append(test_file_words, (void *)word);
         }
         else
         {
             find->frequency++;
-        }
-
-        Word *find2 = find_word(all_words_list, word_text);
-        if (find2 == NULL)
-        {
-            Word *word = new_word(word_text);
-            ll_append(all_words_list, (void *)word);
-        }
-        else
-        {
-            find2->frequency++;
         }
     }
     fclose(test_file_ptr);
 
-    FILE *file_ptr2 = fopen(file2, "r");
-    if (file_ptr2 == NULL)
+    struct dirent *de; // Pointer for directory entry
+    DIR *dr = opendir(corpus);
+
+    if (dr == NULL)
     {
-        printf("Unable to read test file 2\n");
+        printf("Could not open corpus folder");
         return 0;
     }
 
-    while (fscanf(file_ptr2, " %1023s", word_text) == 1)
+    while ((de = readdir(dr)) != NULL)
     {
-        int j = 0;
-        for (int i = 0; word_text[i]; i++)
-        {
-            if (word_text[i] != '.' && word_text[i] != ',')
-            {
-                word_text[j] = tolower(word_text[i]);
-                j++;
-            }
-        }
-
-        // check for empty words
-        if (j == 0)
-        {
+        char *compare_file_name = de->d_name;
+        if (strcmp(compare_file_name, ".") == 0 || strcmp(compare_file_name, "..") == 0) {
             continue;
         }
 
-        word_text[j] = '\0';
-        Word *find = find_word(word_list_2, word_text);
-        if (find == NULL)
+        char *compare_file = malloc(strlen(corpus) + strlen(compare_file_name) + 1); // +1 for the null-terminator
+        strcpy(compare_file, corpus);
+        strcat(compare_file, compare_file_name);
+
+        FILE *compare_file_ptr = fopen(compare_file, "r");
+        if (compare_file_ptr == NULL)
         {
-            Word *word = new_word(word_text);
-            ll_append(word_list_2, (void *)word);
-        }
-        else
-        {
-            find->frequency++;
+            printf("Unable to read compare file: %s\n", compare_file);
+            continue;
         }
 
-        Word *find2 = find_word(all_words_list, word_text);
-        if (find2 == NULL)
+        LinkedList *compare_file_words = ll_new_list(sizeof(Word));
+        LinkedList *combined_words = ll_new_list(sizeof(Word));
+
+        // for test_file_word in test_file_words:
+        ll_Node *curr_test_file_word = test_file_words->head;
+        while (curr_test_file_word != NULL)
         {
-            Word *word = new_word(word_text);
-            ll_append(all_words_list, (void *)word);
+            char *test_file_word_text = ((Word *)curr_test_file_word->data)->word_text;
+            Word *find_in_all_words = find_word(combined_words, test_file_word_text);
+            if (find_in_all_words == NULL)
+            {
+                Word *word = new_word(test_file_word_text);
+                ll_append(combined_words, (void *)word);
+            }
+            else
+            {
+                find_in_all_words->frequency++;
+            }
+            curr_test_file_word = curr_test_file_word->next;
         }
-        else
+
+        while (fscanf(compare_file_ptr, " %1023s", word_text) == 1)
         {
-            find2->frequency++;
+            int j = 0;
+            for (int i = 0; word_text[i]; i++)
+            {
+                if (word_text[i] != '.' && word_text[i] != ',')
+                {
+                    word_text[j] = tolower(word_text[i]);
+                    j++;
+                }
+            }
+
+            // check for empty words
+            if (j == 0)
+            {
+                continue;
+            }
+
+            word_text[j] = '\0';
+            Word *find_in_combined_file_words = find_word(compare_file_words, word_text);
+            if (find_in_combined_file_words == NULL)
+            {
+                Word *word = new_word(word_text);
+                ll_append(compare_file_words, (void *)word);
+            }
+            else
+            {
+                find_in_combined_file_words->frequency++;
+            }
+
+            Word *find_in_all_words = find_word(combined_words, word_text);
+            if (find_in_all_words == NULL)
+            {
+                Word *word = new_word(word_text);
+                ll_append(combined_words, (void *)word);
+            }
+            else
+            {
+                find_in_all_words->frequency++;
+            }
         }
-    }
-    fclose(file_ptr2);
+        fclose(compare_file_ptr);
+        free(compare_file);
 
 #if DEBUG
-    printf("list 1\n");
-    print_word_list(word_list_1);
+        printf("list 1\n");
+        print_word_list(test_file_words);
 
-    printf("list 2\n");
-    print_word_list(word_list_2);
+        printf("list 2\n");
+        print_word_list(compare_file_words);
 
-    printf("list all\n");
-    print_word_list(all_words_list);
+        printf("list all\n");
+        print_word_list(combined_words);
 #endif
 
-    int total_words = all_words_list->length;
-    int word_vector_1[total_words];
-    int word_vector_2[total_words];
+        int total_combined_words = combined_words->length;
+        int word_vector_1[total_combined_words];
+        int word_vector_2[total_combined_words];
 
-    // for all words:
-    ll_Node *current = all_words_list->head;
-
-    int non_stop_words = 0;
-    while (current != NULL)
-    {
-        char *word_text = ((Word *)current->data)->word_text;
+        // for words in combined words:
+        ll_Node *curr_combined_word = combined_words->head;
+        int non_stop_words = 0;
+        while (curr_combined_word != NULL)
+        {
+            char *word_text = ((Word *)curr_combined_word->data)->word_text;
 
 #if REMOVE_STOP_WORDS
-        bool take_word = !is_stop_word(word_text);
+            bool take_word = !is_stop_word(word_text);
 #else
-        bool take_word = true;
+            bool take_word = true;
 #endif
 
-        if (take_word)
-        {
-            Word *word1 = find_word(word_list_1, word_text);
-            if (word1 != NULL)
+            if (take_word)
             {
-                word_vector_1[non_stop_words] = word1->frequency;
-            }
-            else
-            {
-                word_vector_1[non_stop_words] = 0;
+                Word *word1 = find_word(test_file_words, word_text);
+                if (word1 != NULL)
+                {
+                    word_vector_1[non_stop_words] = word1->frequency;
+                }
+                else
+                {
+                    word_vector_1[non_stop_words] = 0;
+                }
+
+                Word *word2 = find_word(compare_file_words, word_text);
+                if (word2 != NULL)
+                {
+                    word_vector_2[non_stop_words] = word2->frequency;
+                }
+                else
+                {
+                    word_vector_2[non_stop_words] = 0;
+                }
+
+                non_stop_words++;
             }
 
-            Word *word2 = find_word(word_list_2, word_text);
-            if (word2 != NULL)
-            {
-                word_vector_2[non_stop_words] = word2->frequency;
-            }
-            else
-            {
-                word_vector_2[non_stop_words] = 0;
-            }
-
-            non_stop_words++;
+            curr_combined_word = curr_combined_word->next;
         }
 
-        current = current->next;
-    }
-
 #if DEBUG
-    printf("Word vector size: %d\n", non_stop_words);
+        printf("Word vector size: %d\n", non_stop_words);
 
-    for (int i = 0; i < non_stop_words; i++)
-    {
-        printf("%d %d\n", word_vector_1[i], word_vector_2[i]);
-    }
+        for (int i = 0; i < non_stop_words; i++)
+        {
+            printf("%d %d\n", word_vector_1[i], word_vector_2[i]);
+        }
 #endif
 
-    double similarity = cosine_similarity(word_vector_1, word_vector_2, non_stop_words);
-    printf("%f\n", similarity);
+        double similarity = cosine_similarity(word_vector_1, word_vector_2, non_stop_words);
+        printf("%s %.2f\n", compare_file_name, similarity * 100.0);
 
-    // Freeing
-    while (!ll_is_empty(word_list_1))
-    {
-        ll_remove_head(word_list_1);
+        // Free compare file words and combine words
+        while (!ll_is_empty(compare_file_words))
+        {
+            ll_remove_head(compare_file_words);
+        }
+        free(compare_file_words);
+
+        while (!ll_is_empty(combined_words))
+        {
+            ll_remove_head(combined_words);
+        }
+        free(combined_words);
     }
-    free(word_list_1);
-    
-    while (!ll_is_empty(word_list_2))
+    closedir(dr);
+
+    // Free test file words
+    while (!ll_is_empty(test_file_words))
     {
-        ll_remove_head(word_list_2);
+        ll_remove_head(test_file_words);
     }
-    free(word_list_2);
-    
-    while (!ll_is_empty(all_words_list))
-    {
-        ll_remove_head(all_words_list);
-    }
-    free(all_words_list);
+    free(test_file_words);
 
     return 0;
 }

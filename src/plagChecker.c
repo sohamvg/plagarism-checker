@@ -75,7 +75,7 @@ void print_word_list(LinkedList *word_list)
 }
 
 // Cosine similarity
-double cosine_similarity(int vector1[], int vector2[], int size)
+double cosine_similarity(double vector1[], double vector2[], int size)
 {
     double dot_product = 0;
     double mod1 = 0;
@@ -183,15 +183,15 @@ int main(int argc, char **argv)
         while (curr_test_file_word != NULL)
         {
             char *test_file_word_text = ((Word *)curr_test_file_word->data)->word_text;
-            Word *find_in_all_words = find_word(combined_words, test_file_word_text);
-            if (find_in_all_words == NULL)
+            Word *find_in_combined_words = find_word(combined_words, test_file_word_text);
+            if (find_in_combined_words == NULL)
             {
                 Word *word = new_word(test_file_word_text);
                 ll_append(combined_words, (void *)word);
             }
             else
             {
-                find_in_all_words->frequency++;
+                find_in_combined_words->frequency++;
             }
             curr_test_file_word = curr_test_file_word->next;
         }
@@ -226,15 +226,15 @@ int main(int argc, char **argv)
                 find_in_combined_file_words->frequency++;
             }
 
-            Word *find_in_all_words = find_word(combined_words, word_text);
-            if (find_in_all_words == NULL)
+            Word *find_in_combined_words = find_word(combined_words, word_text);
+            if (find_in_combined_words == NULL)
             {
                 Word *word = new_word(word_text);
                 ll_append(combined_words, (void *)word);
             }
             else
             {
-                find_in_all_words->frequency++;
+                find_in_combined_words->frequency++;
             }
         }
         fclose(compare_file_ptr);
@@ -252,8 +252,8 @@ int main(int argc, char **argv)
 #endif
 
         int total_combined_words = combined_words->length;
-        int word_vector_1[total_combined_words];
-        int word_vector_2[total_combined_words];
+        double word_vector_1[total_combined_words];
+        double word_vector_2[total_combined_words];
 
         // for words in combined words:
         ll_Node *curr_combined_word = combined_words->head;
@@ -273,7 +273,7 @@ int main(int argc, char **argv)
                 Word *word1 = find_word(test_file_words, word_text);
                 if (word1 != NULL)
                 {
-                    word_vector_1[non_stop_words] = word1->frequency;
+                    word_vector_1[non_stop_words] = (double) (word1->frequency) / (test_file_words->length);
                 }
                 else
                 {
@@ -283,7 +283,7 @@ int main(int argc, char **argv)
                 Word *word2 = find_word(compare_file_words, word_text);
                 if (word2 != NULL)
                 {
-                    word_vector_2[non_stop_words] = word2->frequency;
+                    word_vector_2[non_stop_words] = (double) (word2->frequency) / (compare_file_words->length);
                 }
                 else
                 {
@@ -301,7 +301,7 @@ int main(int argc, char **argv)
 
         for (int i = 0; i < non_stop_words; i++)
         {
-            printf("%d %d\n", word_vector_1[i], word_vector_2[i]);
+            printf("word vectors: %f %f\n", word_vector_1[i], word_vector_2[i]);
         }
 #endif
 

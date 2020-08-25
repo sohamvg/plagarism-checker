@@ -6,7 +6,8 @@
 typedef struct Word
 {
     char word_text[MAX_WORD_SIZE];
-    int frequency;
+    int frequency;  // term frequency
+    double idf;     // inverse document frequency
 } Word;
 
 Word *new_word(char *word_text);

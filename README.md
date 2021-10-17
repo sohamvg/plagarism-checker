@@ -1,4 +1,4 @@
-# Plagarism Checker
+# Plagiarism Checker
 ## Usage
 ```
 make
@@ -9,13 +9,13 @@ If documents have a single theme (e.g. essays on the same topic), use the `same-
 ./bin/plagChecker <test_file> <corpus_folder> same-theme
 ```
 ## Working
-The basic measure of similarity used to detect plagarism is the **cosine similarity**. This is because the goal was to check for text similarity and not the program control flow or order. Also, cosine similarity works well for documents or uneven or large sizes. Cosine similarity works by creating two *word vectors* for both the documents to be compared and then taking the cosine of the tow vectors. Each unique word in a document accounts for a unique dimension in the vector with value equal to the number of occurences or the *frequency* of that word.  
+The basic measure of similarity used to detect plagiarism is the **cosine similarity**. This is because the goal was to check for text similarity and not the program control flow or order. Also, cosine similarity works well for documents of uneven or large sizes. Cosine similarity works by creating two *word vectors* for both the documents to be compared and then taking the cosine of the tow vectors. Each unique word in a document accounts for a unique dimension in the vector with value equal to the number of occurences or the *frequency* of that word.  
 Cosine similarity formula:
 ```
 cosine similarity = (x . y) / mod(x) * mod(y)
 (where x and y are word vectors)
 ```
-For documents having a single theme or topic, cosine similarity with **term frequency and inverse document frequency** or **TF-IDF** can be used via the `same-theme` option. This can be benefitial in tasks like detecting plagarism in essays written on the same topic. For example, if there are 20 essays on the topic "cricket", then even if none of the essays are copied, the words like "cricket", "bat", "stadium" etc. will be present with a high frequency in each document and simple cosine similarity can give vague results. So, the *weight* of such words is reduced relative to other unique words in the calculation of similarity in the TF-IDF method.
+For documents having a single theme or topic, cosine similarity with **term frequency and inverse document frequency** or **TF-IDF** can be used via the `same-theme` option. This can be benefitial in tasks like detecting plagiarism in essays written on the same topic. For example, if there are 20 essays on the topic "cricket", then even if none of the essays are copied, the words like "cricket", "bat", "stadium" etc. will be present with a high frequency in each document and simple cosine similarity can give vague results. So, the *weight* of such words is reduced relative to other unique words in the calculation of similarity in the TF-IDF method.
 
 ### Time and space complexity
 If the average number of words in the test file and corpus files is `n` and the number of corpus files is `m`,  
